@@ -1,10 +1,11 @@
 import pygame
 import random
 import sys
-import glob
 
 SEQUENCE_GEN_LEN = 100
 ICONSIZE = 80
+MULTIPLIERS = [10, 100, 20, 3, 4, 50, 6, 7, 8]
+loose_streak = 0
 
 class SlotState:
     def __init__(self, pos_x, pos_y, size_x, size_y):
@@ -12,11 +13,12 @@ class SlotState:
         self.pos_y = pos_y
         self.size_x = size_x
         self.size_y = size_y
+        self.stopped = False
         self.reset()
         pass
     
     def is_stopped(self):
-        return self.speed == 0
+        return self.stopped
 
     def current_symbol(self):
         image2_index = int((self.offset+75)/ICONSIZE) % SEQUENCE_GEN_LEN
@@ -25,19 +27,24 @@ class SlotState:
     def reset(self):
         self.offset = 0
         self.speed = 500
-        self.slow = 1
-        self.slow_mult = random.randint(0, 1000000) / 10000000
+        self.slow = random.randint(0, 1000) / 100
+        self.stopped = False
+        self.slow_slow = random.randint(0, 10) / 100
         self.elements = [random.randint(0, 8) for _ in range(SEQUENCE_GEN_LEN)]
     
     def update(self):
-        self.offset += self.speed
-        if self.speed > 0:
-            self.speed -= self.slow
-            self.slow += self.slow_mult
-        else:
-            self.speed = 0
-        
-        self.offset = self.offset % (SEQUENCE_GEN_LEN * ICONSIZE)
+        if self.stopped == False:
+            self.offset += self.speed
+            if self.speed > 10:
+                self.speed -= self.slow
+            elif self.speed > 0:
+                self.speed -= self.slow_slow
+            else:
+                self.speed = 0
+                # TODO stop sound najít nějakej
+                self.stopped = True
+            
+            self.offset = self.offset % (SEQUENCE_GEN_LEN * ICONSIZE)
 
     def draw(self):
         image1_index = int(self.offset/ICONSIZE) % SEQUENCE_GEN_LEN
@@ -58,12 +65,6 @@ class SlotState:
         self.offset = self.offset % (SEQUENCE_GEN_LEN * ICONSIZE)
     pass
 
-
-
-multipliers = [10, 100, 20, 3, 4, 50, 6, 7, 8]
-loose_streak = 0
-
-
 # --- Nastavení Pygame ---
 pygame.init()
 pygame.mixer.init()
@@ -77,7 +78,8 @@ SCREEN_OFFSET_Y = (info.current_h - HEIGHT) /2
 SCREEN = pygame.display.set_mode((info.current_w, info.current_h))
 pygame.display.set_caption("Vánoční Gamba Slot Machine")
 
-# --- Načtení a příprava pozadí ---
+# --- Načtení a příprava assetů ---
+wheel_assets = []
 try:
     pygame.mixer.music.load("assets/background.mp3")
     pygame.mixer.music.play(loops=-1, start=0.0)
@@ -87,24 +89,20 @@ try:
     BACKGROUND_IMAGE = pygame.image.load("assets/background.jpg").convert()
     # 2. Škálování obrázku na velikost obrazovky
     BACKGROUND_IMAGE = pygame.transform.scale(BACKGROUND_IMAGE, (WIDTH, HEIGHT))
+    for filename in range(9):
+        print(filename)
+        img = pygame.image.load("assets/wheel_" + str(filename) +".png").convert_alpha()
+        img = pygame.transform.smoothscale(img, (80, 80))
+        wheel_assets.append(img)
 except pygame.error as e:
     # 🚨 Důležité: Pokud se obrázek nenačte, vytiskne chybu a použije se modrá barva jako fallback.
     print(f"Chyba při načítání obrázku pozadí: {e}. Bude použito modré pozadí.")
     BACKGROUND_IMAGE = None # Nastavíme na None pro použití fallback barvy
 
-wheel_assets = []
-for filename in range(9):
-    print(filename)
-    img = pygame.image.load("assets/wheel_" + str(filename) +".png").convert_alpha()
-    img = pygame.transform.smoothscale(img, (80, 80))
-    wheel_assets.append(img)
 
 # --- Barvy ---
-WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (200, 0, 0)
-GREEN = (0, 200, 0)
-BLUE = (0, 0, 200) # Fallback barva
+WHITE = (250, 250, 250)
 
 # --- Fonty ---
 FONT = pygame.font.Font(None, 48)
@@ -127,13 +125,13 @@ def check_multiplier(slot1, slot2, slot3):
     symbol2 = slot3.current_symbol()   
 
     if symbol1 == symbol2 == symbol3:
-        return multipliers[symbol1]
+        return MULTIPLIERS[symbol1]
     if symbol1 == symbol2:
-        return multipliers[symbol1]
+        return MULTIPLIERS[symbol1]
     if symbol2 == symbol3:
-        return multipliers[symbol2]
+        return MULTIPLIERS[symbol2]
     if symbol1 == symbol3:
-        return multipliers[symbol1]
+        return MULTIPLIERS[symbol1]
     return 0
 
 def check_win(slot1, slot2, slot3):
@@ -190,8 +188,6 @@ def draw_wheels():
 
 
 # --- Hlavní herní smyčka ---
-
-
 running = True
 while running:
     for event in pygame.event.get():
@@ -202,12 +198,9 @@ while running:
                 if gamestate == "IDLE" or gamestate == "STOP":
                     start_spin()
 
-
-    # 3. Vykreslení pozadí
     SCREEN.fill(BLACK)
     if BACKGROUND_IMAGE:
         SCREEN.blit(BACKGROUND_IMAGE, (SCREEN_OFFSET_X + 0, SCREEN_OFFSET_Y + 0)) # Vykreslí načtený a škálovaný obrázek
-
     update()
     draw_wheels()
 
@@ -216,7 +209,6 @@ while running:
         check_win(slot1_state, slot2_state, slot3_state)
 
     pygame.display.flip()    
-    # Cap the frame rate
     clock.tick(60)
 
 # --- Ukončení Pygame ---
