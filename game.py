@@ -131,8 +131,8 @@ info = pygame.display.Info()
 SCREEN_OFFSET_X = (info.current_w - WIDTH) /2
 SCREEN_OFFSET_Y = (info.current_h - HEIGHT) /2
 
-# SCREEN = pygame.display.set_mode((800, 800), pygame.FULLSCREEN)
-SCREEN = pygame.display.set_mode((info.current_w, info.current_h))
+SCREEN = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+# SCREEN = pygame.display.set_mode((info.current_w, info.current_h))
 pygame.display.set_caption("Vánoční Gamba Slot Machine")
 
 # --- Načtení a příprava assetů ---
@@ -337,6 +337,8 @@ def draw_text(surface, text, rect, font_name=None, color=(255,255,255)):
         min_size=12
     )
 
+    pygame.draw.rect(SCREEN, (255, 255, 255), rect)
+
     line_height = font.get_linesize()
     cy = y
 
@@ -375,7 +377,7 @@ def update():
         slot3_state.update_idle()
     if gamestate == "SANTA":
         santa_time += 1
-        if santa_time >= 200:
+        if santa_time >= 350:
             santa_time = 0
             gamestate = "IDLE"
 
